@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DENGUE LARVAL INDEX SURVEILLANCE DASHBOARD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:#0f766e; --teal-d:#0b5750; --teal-l:#e6f4f2;
+  --green:#16a34a; --blue:#2563eb; --ink:#0f2521; --sub:#5b6b68;
+  --bg:#f4f8f7; --card:#ffffff; --line:#dbe7e4;
+  --red:#dc2626; --orange:#ea580c; --yellow:#ca8a04;
+  --safe-t: env(safe-area-inset-top,0px); --safe-b: env(safe-area-inset-bottom,0px);
+}
+:root:not([data-theme="light"]){ }
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0c1614; --card:#132420; --ink:#eaf3f1; --sub:#9fb3af; --line:#1e3733; --teal-l:#0f2b27;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0c1614; --card:#132420; --ink:#eaf3f1; --sub:#9fb3af; --line:#1e3733; --teal-l:#0f2b27;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:'Noto Sans Thai', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  padding-top:var(--safe-t); padding-bottom:var(--safe-b);
+}
+.wrap{max-width:1280px; margin:0 auto; padding:16px;}
+header.top{
+  position:sticky; top:0; padding-top:var(--safe-t); z-index:20;
+  background:linear-gradient(135deg,var(--teal-d),var(--teal));
+  color:#fff; box-shadow:0 2px 10px rgba(0,0,0,.15);
+}
+.hdr-inner{max-width:1280px; margin:0 auto; padding:14px 16px; display:flex; flex-wrap:wrap; gap:10px 20px; align-items:center; justify-content:space-between;}
+.brand{display:flex; align-items:center; gap:12px;}
+.brand .logo{width:44px;height:44px;border-radius:50%;background:#fff;color:var(--teal-d);display:flex;align-items:center;justify-content:center;font-size:22px;flex:none;}
+.brand h1{font-size:16px; margin:0; letter-spacing:.3px;}
+.brand p{margin:2px 0 0; font-size:12.5px; opacity:.9;}
+.meta{display:flex; gap:14px; flex-wrap:wrap; font-size:12.5px;}
+.meta b{display:block; font-size:14px;}
+.badge-demo{background:#fff3; border:1px solid #ffffff55; padding:3px 10px; border-radius:20px; font-size:11.5px;}
+nav.tabs{display:flex; gap:6px; overflow-x:auto; padding:10px 16px 0; max-width:1280px; margin:0 auto;}
+nav.tabs button{
+  border:none; background:transparent; color:#fff; opacity:.75; padding:8px 14px; border-radius:10px 10px 0 0;
+  font-family:inherit; font-size:13.5px; cursor:pointer; white-space:nowrap;
+}
+nav.tabs button.active{background:var(--bg); color:var(--teal-d); opacity:1; font-weight:700;}
+section.tabpanel{display:none;}
+section.tabpanel.active{display:block;}
+h2.h{font-size:16px; margin:22px 0 10px; color:var(--teal-d); display:flex; align-items:center; gap:8px;}
+:root[data-theme="dark"] h2.h, .dkfix{color:#7fd9cd;}
+.grid-kpi{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px;}
+.kpi{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; text-align:center;}
+.kpi .num{font-size:28px; font-weight:800; color:var(--teal-d);}
+.kpi .lbl{font-size:12px; color:var(--sub); margin-top:2px;}
+.kpi.alertnum .num{color:var(--red);}
+.card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:16px;}
+.risk-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:8px;}
+.vtile{border-radius:10px; padding:8px; color:#fff; font-size:11.5px; cursor:pointer; text-align:left; min-height:64px; display:flex; flex-direction:column; justify-content:space-between;}
+.vtile b{font-size:13px;}
+.vtile span{opacity:.9;}
+.g-green{background:var(--green);} .g-yellow{background:var(--yellow); color:#2b2200;} .g-orange{background:var(--orange);} .g-red{background:var(--red);}
+.legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--sub); margin-top:10px;}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block; margin-right:5px; vertical-align:-1px;}
+.filters{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;}
+.filters select,.filters input{padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); font-family:inherit; font-size:13px;}
+table{width:100%; border-collapse:collapse; font-size:13px; min-width:760px;}
+th,td{padding:8px 10px; border-bottom:1px solid var(--line); text-align:left; white-space:nowrap;}
+th{color:var(--sub); font-weight:600; position:sticky; top:0; background:var(--card);}
+tr:hover td{background:var(--teal-l);}
+.tblwrap{overflow-x:auto;}
+.pill{padding:2px 9px; border-radius:20px; font-size:11.5px; color:#fff; font-weight:600;}
+.p-green{background:var(--green);} .p-yellow{background:var(--yellow); color:#2b2200;} .p-orange{background:var(--orange);} .p-red{background:var(--red);}
+.rowbtn{border:none; background:var(--teal-l); color:var(--teal-d); padding:5px 10px; border-radius:7px; cursor:pointer; font-family:inherit; font-size:12px;}
+.modal-bg{position:fixed; inset:0; background:#0008; display:none; align-items:center; justify-content:center; z-index:50; padding:16px;}
+.modal-bg.show{display:flex;}
+.modal{background:var(--card); border-radius:14px; padding:20px; max-width:560px; width:100%; max-height:85vh; overflow-y:auto;}
+.modal h3{margin-top:0; color:var(--teal-d);}
+.closeb{float:right; border:none; background:var(--line); border-radius:8px; padding:5px 10px; cursor:pointer;}
+.two-col{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+@media (max-width:760px){.two-col{grid-template-columns:1fr;}}
+.toggles{display:flex; gap:6px; margin-bottom:8px;}
+.toggles button{border:1px solid var(--line); background:var(--card); color:var(--ink); padding:6px 12px; border-radius:8px; cursor:pointer; font-family:inherit; font-size:12.5px;}
+.toggles button.on{background:var(--teal); color:#fff; border-color:var(--teal);}
+.alertbox{border-left:5px solid; border-radius:10px; padding:10px 14px; margin-bottom:10px; background:var(--teal-l); font-size:13px;}
+.al-red{border-color:var(--red);} .al-orange{border-color:var(--orange);} .al-yellow{border-color:var(--yellow);} .al-gray{border-color:#9aa6a4;}
+.alertbox b.tag{display:inline-block; margin-bottom:4px;}
+.summary-txt{white-space:pre-wrap; line-height:1.9; font-size:14px;}
+.status-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; margin-top:10px;}
+.status-grid div{background:var(--teal-l); border-radius:10px; padding:10px; text-align:center;}
+.status-grid b{font-size:20px; display:block; color:var(--teal-d);}
+footer{text-align:center; padding:24px 16px calc(20px + var(--safe-b)); color:var(--sub); font-size:12px;}
+.refreshbar{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+.refreshbtn{background:#ffffff22; border:1px solid #ffffff55; color:#fff; padding:6px 12px; border-radius:8px; cursor:pointer; font-family:inherit; font-size:12.5px;}
+small.note{color:var(--sub); display:block; margin-top:6px;}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="hdr-inner">
+    <div class="brand">
+      <div class="logo">🦟</div>
+      <div>
+        <h1>DENGUE LARVAL INDEX SURVEILLANCE DASHBOARD</h1>
+        <p>ระบบเฝ้าระวังค่าดัชนีลูกน้ำยุงลาย อำเภอท่าแพ จังหวัดสตูล <span class="badge-demo" id="connBadge">⏳ กำลังเชื่อมต่อ...</span></p>
+      </div>
+    </div>
+    <div class="refreshbar">
+      <div class="meta">
+        <div><b id="mDate">-</b>วันที่/เวลาปัจจุบัน</div>
+        <div><b id="mLast">-</b>ข้อมูลล่าสุด ณ</div>
+        <div><b id="mTambon">-</b>ตำบลที่สำรวจ</div>
+        <div><b id="mVillage">-</b>หมู่บ้านที่สำรวจ</div>
+        <div><b id="mCount">-</b>จำนวนรายการที่อัปเดตล่าสุด</div>
+      </div>
+      <button class="refreshbtn" onclick="fetchAndRender()">⟳ Refresh Data</button>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button data-tab="overview" class="active">ภาพรวม / Overview</button>
+    <button data-tab="table">ตารางหมู่บ้าน</button>
+    <button data-tab="trend">แนวโน้ม / เปรียบเทียบ</button>
+    <button data-tab="alert">EOC Alert &amp; ติดตาม</button>
+    <button data-tab="summary">Executive Summary</button>
+  </nav>
+</header>
+
+<div class="wrap">
+
+  <!-- OVERVIEW -->
+  <section class="tabpanel active" id="tab-overview">
+    <h2 class="h">📊 ตัวชี้วัดหลัก (KPI)</h2>
+    <div class="grid-kpi" id="kpiGrid"></div>
+
+    <h2 class="h">🗺️ แผนที่ความเสี่ยงรายหมู่บ้าน (Risk Heatmap)</h2>
+    <div class="card">
+      <div class="risk-grid" id="riskGrid"></div>
+      <div class="legend">
+        <span><i class="g-green" style="background:var(--green)"></i>ควบคุมได้</span>
+        <span><i style="background:var(--yellow)"></i>เฝ้าระวัง</span>
+        <span><i style="background:var(--orange)"></i>ต้องเร่งดำเนินการ</span>
+        <span><i style="background:var(--red)"></i>ค่าดัชนีสูง/เสี่ยง</span>
+      </div>
+      <small class="note">* คลิกหมู่บ้านเพื่อดูรายละเอียด — ไม่มีพิกัด Lat/Long ในข้อมูลตัวอย่าง จึงแสดงเป็น Grid ตามตำบล แทนแผนที่ภูมิศาสตร์จริง</small>
+    </div>
+  </section>
+
+  <!-- TABLE -->
+  <section class="tabpanel" id="tab-table">
+    <h2 class="h">📋 ตาราง Ranking / Monitoring รายหมู่บ้าน</h2>
+    <div class="card">
+      <div class="filters">
+        <select id="fTambon"><option value="">ทุกตำบล</option></select>
+        <select id="fRisk"><option value="">ทุกระดับความเสี่ยง</option><option value="red">แดง-สูง</option><option value="orange">ส้ม-เร่งด่วน</option><option value="yellow">เหลือง-เฝ้าระวัง</option><option value="green">เขียว-ควบคุมได้</option></select>
+        <select id="fStatus"><option value="">ทุกสถานะดำเนินงาน</option></select>
+        <input id="fSearch" placeholder="ค้นหาชื่อหมู่บ้าน...">
+      </div>
+      <div class="tblwrap">
+        <table>
+          <thead><tr><th>ตำบล</th><th>หมู่ที่</th><th>ชื่อหมู่บ้าน</th><th>วันที่สำรวจ</th><th>สำรวจ/พบลูกน้ำ</th><th>HI</th><th>CI</th><th>BI</th><th>ระดับเสี่ยง</th><th>สถานะ</th><th></th></tr></thead>
+          <tbody id="tblBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- TREND -->
+  <section class="tabpanel" id="tab-trend">
+    <h2 class="h">📈 แนวโน้มค่าดัชนีรายสัปดาห์</h2>
+    <div class="card">
+      <div class="toggles" id="trendIndToggle">
+        <button data-v="hi" class="on">HI</button><button data-v="ci">CI</button><button data-v="bi">BI</button>
+      </div>
+      <div class="toggles" id="trendWkToggle">
+        <button data-v="4" class="on">4 สัปดาห์</button><button data-v="8">8 สัปดาห์</button><button data-v="12">12 สัปดาห์</button>
+      </div>
+      <svg id="trendSvg" viewBox="0 0 700 240" style="width:100%; height:auto;"></svg>
+      <small class="note" id="trendVerdict"></small>
+    </div>
+    <h2 class="h">📊 เปรียบเทียบรายตำบล</h2>
+    <div class="card">
+      <div class="toggles" id="barIndToggle">
+        <button data-v="hi" class="on">HI</button><button data-v="ci">CI</button><button data-v="bi">BI</button>
+      </div>
+      <svg id="barSvg" viewBox="0 0 700 260" style="width:100%; height:auto;"></svg>
+    </div>
+  </section>
+
+  <!-- ALERT -->
+  <section class="tabpanel" id="tab-alert">
+    <h2 class="h">🚨 EOC ALERT</h2>
+    <div id="alertList"></div>
+    <h2 class="h">✅ EOC Action Tracking</h2>
+    <div class="card">
+      <div class="status-grid" id="statusGrid"></div>
+    </div>
+  </section>
+
+  <!-- SUMMARY -->
+  <section class="tabpanel" id="tab-summary">
+    <h2 class="h">🧾 Executive Summary สำหรับที่ประชุม EOC</h2>
+    <div class="card"><div class="summary-txt" id="summaryTxt"></div></div>
+    <div class="card">
+      <b>ขั้นตอนเชื่อมต่อ Google Sheets จริง (สรุปย่อ)</b>
+      <ol style="font-size:13.5px; line-height:1.8;">
+        <li>สร้าง Google Sheet ตามโครงสร้างคอลัมน์ที่กำหนด แล้วเปิด Google Apps Script</li>
+        <li>เขียน Web App (doGet) ให้ส่งออกข้อมูลเป็น JSON พร้อม Deploy เป็น "Web App" (Anyone with link)</li>
+        <li>นำ URL ของ Web App ไปตั้งเป็นแหล่งข้อมูลใน Dashboard เวอร์ชันที่ Host เอง (เช่น Looker Studio ต่อ Sheets โดยตรง หรือเว็บแอปที่ Host บนเซิร์ฟเวอร์ของหน่วยงาน)</li>
+        <li>ตั้งเวลา Trigger/Auto Refresh ทุก 1–5 นาทีฝั่ง Dashboard ให้ดึงข้อมูลใหม่</li>
+        <li>หมายเหตุ: หน้านี้เผยแพร่ผ่าน Claude Artifact ซึ่งมีข้อจำกัดด้านความปลอดภัยไม่อนุญาตให้ดึง API ภายนอกโดยตรง จึงต้อง Host เวอร์ชัน Production แยกต่างหาก (Looker Studio / Power BI / เว็บแอปของหน่วยงาน) จึงจะ Auto Refresh จาก Google Sheets ได้จริง</li>
+      </ol>
+    </div>
+  </section>
+
+</div>
+
+<div class="modal-bg" id="modalBg"><div class="modal" id="modalBody"></div></div>
+
+<footer>ระบบเฝ้าระวังค่าดัชนีลูกน้ำยุงลาย อำเภอท่าแพ จังหวัดสตูล — ข้อมูลในหน้านี้เป็นข้อมูลสาธิตเพื่อสาธิตการออกแบบ Dashboard เท่านั้น</footer>
+
+<script>
+const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwx50sZn7AyQCKNdvn9aE_XIHkCprFpbhWNYzDfGsYjFRoUadPj6_ntBR2DnXpwyxgk/exec";
+const REFRESH_MS = 3*60*1000; // 3 minutes
+
+let villages = [], tambons = [], rawRows = [];
+const riskLabel = {red:'สูง/เสี่ยง',orange:'เร่งด่วน',yellow:'เฝ้าระวัง',green:'ควบคุมได้',gray:'ไม่มีข้อมูล'};
+const statuses = ["ยังไม่ได้ดำเนินการ","กำลังดำเนินการ","ดำเนินการแล้ว","ติดตามซ้ำ","ปิดประเด็น"];
+
+function parseDate(s){
+  if(!s) return null;
+  s = String(s).trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(m){ let y=+m[1]; if(y>2400) y-=543; return new Date(y,+m[2]-1,+m[3]); }
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m){ let y=+m[3]; if(y>2400) y-=543; return new Date(y,+m[2]-1,+m[1]); }
+  const d = new Date(s);
+  return isNaN(d)? null : d;
+}
+function isoWeekKey(d){
+  const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = (dt.getUTCDay()+6)%7; dt.setUTCDate(dt.getUTCDate()-day+3);
+  const firstThu = new Date(Date.UTC(dt.getUTCFullYear(),0,4));
+  const week = 1+Math.round(((dt-firstThu)/86400000 - 3 + ((firstThu.getUTCDay()+6)%7))/7);
+  return dt.getUTCFullYear()+'-W'+String(week).padStart(2,'0');
+}
+function avg(a){ return a.length? a.reduce((s,x)=>s+x,0)/a.length : 0; }
+function riskClass(text){
+  text = text||'';
+  if(text.startsWith('แดง')) return 'red';
+  if(text.startsWith('ส้ม')) return 'orange';
+  if(text.startsWith('เหลือง')) return 'yellow';
+  if(text.startsWith('เขียว')) return 'green';
+  return 'gray';
+}
+
+function buildVillages(rows){
+  const map = new Map();
+  rows.forEach(row=>{
+    const tb=(row['ตำบล']||'').trim(), moo=(row['หมู่ที่']||'').trim();
+    const name=(row['ชื่อหมู่บ้าน']||'').trim() || (tb+' หมู่ '+moo);
+    if(!tb) return;
+    const key = tb+'|'+moo+'|'+name;
+    if(!map.has(key)) map.set(key, {tambon:tb, moo, name, records:[]});
+    map.get(key).records.push(row);
+  });
+  let id=0; const list=[];
+  map.forEach(v=>{
+    v.records.sort((a,b)=>(parseDate(a['วันที่สำรวจ'])||0)-(parseDate(b['วันที่สำรวจ'])||0));
+    const hist = v.records.map(r=>({
+      hi:parseFloat(r['HI']), ci:parseFloat(r['CI']), bi:parseFloat(r['BI']), date:r['วันที่สำรวจ']
+    })).filter(h=>!isNaN(h.hi));
+    const last = v.records[v.records.length-1] || {};
+    const hi=parseFloat(last['HI']), hasData = last && !isNaN(hi);
+    id++;
+    list.push({
+      id, tambon:v.tambon, moo:v.moo, name:v.name,
+      houses:+last['จำนวนหลังคาเรือนที่สำรวจ']||0, foundH:+last['จำนวนหลังคาเรือนที่พบลูกน้ำ']||0,
+      containers:+last['จำนวนภาชนะที่สำรวจ']||0, foundC:+last['จำนวนภาชนะที่พบลูกน้ำ']||0,
+      hi, ci:parseFloat(last['CI']), bi:parseFloat(last['BI']),
+      risk: hasData? riskClass(last['ระดับความเสี่ยง']) : 'gray', hasData,
+      surveyDate: last['วันที่สำรวจ']||null,
+      status: last['สถานะการดำเนินงาน']||statuses[0],
+      officer: last['ผู้สำรวจ']||'-',
+      hist
+    });
+  });
+  return list;
+}
+
+async function fetchAndRender(){
+  document.getElementById('connBadge').textContent='⏳ กำลังเชื่อมต่อ...';
+  try{
+    const res = await fetch(SHEET_API_URL, {cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    rawRows = await res.json();
+    villages = buildVillages(rawRows);
+    tambons = [...new Set(villages.map(v=>v.tambon))].sort();
+    document.getElementById('connBadge').textContent='🟢 เชื่อมต่อ Google Sheets สำเร็จ';
+    renderAll();
+  }catch(err){
+    document.getElementById('connBadge').textContent='🔴 Connection Error: '+err.message;
+    if(!villages.length){
+      document.getElementById('kpiGrid').innerHTML='<p style="color:var(--red)">ไม่สามารถเชื่อมต่อ Google Sheets ได้ กรุณาตรวจสอบ URL การ Deploy หรือสิทธิ์การเข้าถึง</p>';
+    }
+  }
+}
+
+// ---------- TABS ----------
+document.querySelectorAll('nav.tabs button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('nav.tabs button').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tabpanel').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('tab-'+b.dataset.tab).classList.add('active');
+  };
+});
+
+function paintHeader(){
+  const now=new Date();
+  document.getElementById('mDate').textContent = now.toLocaleDateString('th-TH',{day:'2-digit',month:'short',year:'2-digit'})+' '+now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('mLast').textContent = now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('mTambon').textContent = tambons.length;
+  document.getElementById('mVillage').textContent = villages.length;
+  document.getElementById('mCount').textContent = rawRows.length;
+}
+
+function paintKPI(){
+  const surveyed = villages.filter(v=>v.hasData);
+  const withLarvae = surveyed.filter(v=>v.foundH>0);
+  const avgk=k=>surveyed.length? (surveyed.reduce((s,v)=>s+(v[k]||0),0)/surveyed.length).toFixed(1):'-';
+  const watch = surveyed.filter(v=>v.risk==='yellow').length;
+  const high = surveyed.filter(v=>v.risk==='red'||v.risk==='orange').length;
+  const noData = villages.length-surveyed.length;
+  const kpis=[[villages.length,'จำนวนหมู่บ้านที่สำรวจ'],[withLarvae.length,'หมู่บ้านที่พบลูกน้ำ'],
+    [avgk('hi'),'ค่า HI เฉลี่ย'],[avgk('ci'),'ค่า CI เฉลี่ย'],[avgk('bi'),'ค่า BI เฉลี่ย'],
+    [watch,'หมู่บ้านระดับเฝ้าระวัง'],[high,'หมู่บ้านค่าดัชนีสูง/เร่งด่วน'],[noData,'หมู่บ้านยังไม่ได้สำรวจตามรอบ']];
+  document.getElementById('kpiGrid').innerHTML = kpis.map((k,i)=>`<div class="kpi ${i>=5?'alertnum':''}"><div class="num">${k[0]}</div><div class="lbl">${k[1]}</div></div>`).join('');
+}
+
+function paintRiskGrid(){
+  document.getElementById('riskGrid').innerHTML = villages.map(v=>{
+    const cls = v.hasData? 'g-'+v.risk : '';
+    const style = v.hasData? '' : 'background:#9aa6a4';
+    return `<button class="vtile ${cls}" style="${style}" onclick="openVillage(${v.id})"><b>${v.name}</b><span>${v.hasData? 'HI '+v.hi : 'ไม่มีข้อมูล'}</span></button>`;
+  }).join('');
+}
+
+function fillFilterOptions(){
+  const ft=document.getElementById('fTambon'); ft.innerHTML='<option value="">ทุกตำบล</option>';
+  tambons.forEach(t=>ft.insertAdjacentHTML('beforeend',`<option value="${t}">${t}</option>`));
+  const fs=document.getElementById('fStatus'); fs.innerHTML='<option value="">ทุกสถานะดำเนินงาน</option>';
+  statuses.forEach(s=>fs.insertAdjacentHTML('beforeend',`<option value="${s}">${s}</option>`));
+  ['fTambon','fRisk','fStatus','fSearch'].forEach(id=>document.getElementById(id).oninput=paintTable);
+}
+function paintTable(){
+  const ft=document.getElementById('fTambon').value, fr=document.getElementById('fRisk').value, fst=document.getElementById('fStatus').value, fq=document.getElementById('fSearch').value.trim();
+  let rows = villages.filter(v=>(!ft||v.tambon===ft)&&(!fr||v.risk===fr)&&(!fst||v.status===fst)&&(!fq||v.name.includes(fq)));
+  rows = rows.slice().sort((a,b)=>(b.hi||-1)-(a.hi||-1));
+  document.getElementById('tblBody').innerHTML = rows.map(v=>`
+    <tr><td>${v.tambon}</td><td>${v.moo}</td><td>${v.name}</td><td>${v.surveyDate||'ไม่มีข้อมูล'}</td>
+    <td>${v.hasData? v.houses+' / '+v.foundH : '-'}</td><td>${v.hasData? v.hi:'-'}</td><td>${v.hasData? v.ci:'-'}</td><td>${v.hasData? v.bi:'-'}</td>
+    <td><span class="pill p-${v.risk}" style="${v.risk==='gray'?'background:#9aa6a4':''}">${riskLabel[v.risk]}</span></td>
+    <td>${v.status}</td><td><button class="rowbtn" onclick="openVillage(${v.id})">ดูรายละเอียด</button></td></tr>`).join('');
+}
+
+function sparkline(vals,w,h,color){
+  if(vals.length<2) return '<p style="font-size:12px;color:var(--sub)">ข้อมูลไม่พอสำหรับสร้างกราฟ (ต้องมีอย่างน้อย 2 ครั้ง)</p>';
+  const max=Math.max(...vals,1), min=Math.min(...vals,0);
+  const pts=vals.map((v,i)=>[(i/(vals.length-1))*w, h-((v-min)/(max-min||1))*h]);
+  const d=pts.map((p,i)=>(i===0?'M':'L')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;max-width:320px;height:${h}px;"><path d="${d}" fill="none" stroke="${color}" stroke-width="2.5"/></svg>`;
+}
+function openVillage(id){
+  const v=villages.find(x=>x.id===id);
+  const spark = sparkline(v.hist.map(h=>h.hi),260,60,'#0f766e');
+  document.getElementById('modalBody').innerHTML = `
+    <button class="closeb" onclick="closeModal()">ปิด ✕</button>
+    <h3>${v.name} <small style="font-weight:400;color:var(--sub)">(ตำบล${v.tambon})</small></h3>
+    <p style="font-size:13.5px;">วันที่สำรวจล่าสุด: <b>${v.surveyDate||'ไม่มีข้อมูล'}</b> · ผู้สำรวจ: ${v.officer} · สถานะ: <b>${v.status}</b></p>
+    <div class="two-col">
+      <div><b>HI:</b> ${v.hasData?v.hi:'-'} &nbsp; <b>CI:</b> ${v.hasData?v.ci:'-'} &nbsp; <b>BI:</b> ${v.hasData?v.bi:'-'}</div>
+      <div>หลังคาเรือนสำรวจ: ${v.hasData?v.houses:'-'} / พบลูกน้ำ: ${v.hasData?v.foundH:'-'}<br>ภาชนะสำรวจ: ${v.hasData?v.containers:'-'} / พบลูกน้ำ: ${v.hasData?v.foundC:'-'}</div>
+    </div>
+    <p style="margin-top:12px; font-size:13px; color:var(--sub);">แนวโน้ม HI จากประวัติการสำรวจทั้งหมด (${v.hist.length} ครั้ง)</p>
+    ${spark}`;
+  document.getElementById('modalBg').classList.add('show');
+}
+function closeModal(){document.getElementById('modalBg').classList.remove('show');}
+document.getElementById('modalBg').addEventListener('click',e=>{if(e.target.id==='modalBg')closeModal();});
+
+// ---------- TREND (aggregated by ISO week across all raw survey rows) ----------
+let trendInd='hi', trendWk=4;
+document.getElementById('trendIndToggle').addEventListener('click',e=>{
+  if(e.target.tagName!=='BUTTON')return;
+  [...e.currentTarget.children].forEach(b=>b.classList.remove('on')); e.target.classList.add('on');
+  trendInd=e.target.dataset.v; paintTrend();
+});
+document.getElementById('trendWkToggle').addEventListener('click',e=>{
+  if(e.target.tagName!=='BUTTON')return;
+  [...e.currentTarget.children].forEach(b=>b.classList.remove('on')); e.target.classList.add('on');
+  trendWk=+e.target.dataset.v; paintTrend();
+});
+function weeklyAgg(){
+  const buckets={};
+  rawRows.forEach(r=>{
+    const d=parseDate(r['วันที่สำรวจ']); const hi=parseFloat(r['HI']), ci=parseFloat(r['CI']), bi=parseFloat(r['BI']);
+    if(!d||isNaN(hi)) return;
+    const k=isoWeekKey(d);
+    if(!buckets[k]) buckets[k]={hi:[],ci:[],bi:[]};
+    buckets[k].hi.push(hi); buckets[k].ci.push(ci); buckets[k].bi.push(bi);
+  });
+  return Object.keys(buckets).sort().map(k=>({week:k,hi:avg(buckets[k].hi),ci:avg(buckets[k].ci),bi:avg(buckets[k].bi)}));
+}
+function paintTrend(){
+  const all=weeklyAgg(); const data=all.slice(-trendWk);
+  const box=document.getElementById('trendSvg'), verdict=document.getElementById('trendVerdict');
+  if(data.length<2){ box.innerHTML=''; verdict.textContent='ยังไม่มีข้อมูลรายสัปดาห์เพียงพอสำหรับกราฟแนวโน้ม (ต้องมีข้อมูลอย่างน้อย 2 สัปดาห์)'; return; }
+  const vals=data.map(d=>d[trendInd]);
+  const W=700,H=240,pad=30, max=Math.max(...vals)*1.15||1, min=0;
+  const pts=vals.map((v,i)=>[pad+(i/(vals.length-1))*(W-2*pad), H-pad-((v-min)/(max-min))*(H-2*pad)]);
+  const d=pts.map((p,i)=>(i===0?'M':'L')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+  const dots=pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.5" fill="#0f766e"/>`).join('');
+  box.innerHTML = `<line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#9aa6a4"/><path d="${d}" fill="none" stroke="#0f766e" stroke-width="3"/>`+dots;
+  const delta = vals[vals.length-1]-vals[0];
+  const v2 = delta>2?'แย่ลง (Increasing)': delta<-2?'ดีขึ้น (Decreasing)':'ทรงตัว (Stable)';
+  verdict.textContent = `ค่า ${trendInd.toUpperCase()} เฉลี่ยทั้งอำเภอ ย้อนหลัง ${data.length} สัปดาห์ที่มีข้อมูล — แนวโน้ม: ${v2}`;
+}
+
+// ---------- BAR COMPARISON ----------
+let barInd='hi';
+document.getElementById('barIndToggle').addEventListener('click',e=>{
+  if(e.target.tagName!=='BUTTON')return;
+  [...e.currentTarget.children].forEach(b=>b.classList.remove('on')); e.target.classList.add('on');
+  barInd=e.target.dataset.v; paintBar();
+});
+function paintBar(){
+  let data = tambons.map(t=>{
+    const vs=villages.filter(v=>v.tambon===t && v.hasData);
+    const a=vs.length? vs.reduce((s,v)=>s+(v[barInd]||0),0)/vs.length:0;
+    return {t, a};
+  }).sort((a,b)=>b.a-a.a);
+  const box=document.getElementById('barSvg');
+  if(!data.length){ box.innerHTML=''; return; }
+  const W=700,H=260,pad=40, bw=(W-2*pad)/data.length*0.6, max=Math.max(...data.map(d=>d.a))*1.2||1;
+  let svg=`<line x1="${pad}" y1="${H-30}" x2="${W-pad}" y2="${H-30}" stroke="#9aa6a4"/>`;
+  data.forEach((d,i)=>{
+    const x=pad+(i+0.2)*((W-2*pad)/data.length), bh=(d.a/max)*(H-60);
+    svg+=`<rect x="${x.toFixed(1)}" y="${(H-30-bh).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="#0f766e" rx="4"/>`;
+    svg+=`<text x="${(x+bw/2).toFixed(1)}" y="${H-12}" font-size="11" text-anchor="middle" fill="#5b6b68">${d.t}</text>`;
+    svg+=`<text x="${(x+bw/2).toFixed(1)}" y="${(H-36-bh).toFixed(1)}" font-size="11" text-anchor="middle" fill="#0f766e" font-weight="700">${d.a.toFixed(1)}</text>`;
+  });
+  box.innerHTML=svg;
+}
+
+// ---------- ALERTS ----------
+function paintAlerts(){
+  const red=villages.filter(v=>v.risk==='red'), orange=villages.filter(v=>v.risk==='orange');
+  const yellow=villages.filter(v=>v.risk==='yellow'), gap=villages.filter(v=>!v.hasData);
+  function block(list,cls,tag,issue){
+    if(!list.length) return '';
+    return list.map(v=>`<div class="alertbox ${cls}"><b class="tag">${tag}</b><br>
+      <b>${v.name}</b> (ตำบล${v.tambon}) — ${issue}<br>
+      <small>ค่าดัชนี: HI ${v.hasData?v.hi:'-'} / CI ${v.hasData?v.ci:'-'} / BI ${v.hasData?v.bi:'-'} · วันที่สำรวจ: ${v.surveyDate||'-'} · สถานะล่าสุด: ${v.status} · ผู้รับผิดชอบ: ${v.officer}</small></div>`).join('');
+  }
+  document.getElementById('alertList').innerHTML =
+    block(red,'al-red','🔴 HIGH PRIORITY','ค่าดัชนีลูกน้ำสูงเกินเกณฑ์') +
+    block(orange,'al-orange','🟠 ACTION REQUIRED','พบลูกน้ำต่อเนื่อง ต้องเร่งดำเนินการ') +
+    block(yellow,'al-yellow','🟡 SURVEILLANCE','อยู่ระดับเฝ้าระวัง ต้องติดตามซ้ำ') +
+    block(gap,'al-gray','⚪ DATA GAP','ยังไม่มีข้อมูลสำรวจตามรอบ')
+    || '<p style="color:var(--sub)">ไม่มี Alert ในขณะนี้</p>';
+}
+function paintStatusTracking(){
+  document.getElementById('statusGrid').innerHTML = statuses.map(s=>{
+    const c=villages.filter(v=>v.status===s).length;
+    return `<div><b>${c}</b>${s}</div>`;
+  }).join('');
+}
+
+// ---------- SUMMARY ----------
+function paintSummary(){
+  const surveyed=villages.filter(v=>v.hasData);
+  if(!surveyed.length){ document.getElementById('summaryTxt').textContent='ยังไม่มีข้อมูลสำรวจในระบบ'; return; }
+  const watch=surveyed.filter(v=>v.risk==='yellow'), urgent=surveyed.filter(v=>v.risk==='red'||v.risk==='orange');
+  const hiAvg=avg(surveyed.map(v=>v.hi)).toFixed(1), ciAvg=avg(surveyed.map(v=>v.ci)).toFixed(1), biAvg=avg(surveyed.map(v=>v.bi)).toFixed(1);
+  const topTambons=[...new Set(urgent.map(v=>v.tambon))].join(', ')||'ไม่มี';
+  const topVillages=urgent.slice(0,5).map(v=>v.name).join(', ')||'ไม่มี';
+  const weeks=weeklyAgg();
+  function trendWord(ind){
+    if(weeks.length<2) return 'ยังไม่มีข้อมูลเพียงพอ';
+    const now=weeks[weeks.length-1][ind], prev=weeks[weeks.length-2][ind];
+    return now>prev+1?'เพิ่มขึ้น':now<prev-1?'ลดลง':'ทรงตัว';
+  }
+  document.getElementById('summaryTxt').textContent =
+`ปัจจุบันอำเภอท่าแพมีการสำรวจแล้ว ${surveyed.length} หมู่บ้าน จากทั้งหมด ${villages.length} หมู่บ้านที่มีข้อมูลในระบบ
+พบหมู่บ้านที่ต้องเฝ้าระวัง ${watch.length} หมู่บ้าน และหมู่บ้านที่ต้องเร่งดำเนินการ ${urgent.length} หมู่บ้าน
+
+ค่าเฉลี่ยทั้งอำเภอ: HI ${hiAvg} / CI ${ciAvg} / BI ${biAvg}
+
+ตำบลที่มีค่าดัชนีสูง ได้แก่ ${topTambons}
+หมู่บ้านที่ควรติดตามเร่งด่วน ได้แก่ ${topVillages}
+
+เมื่อเปรียบเทียบกับสัปดาห์ก่อน
+ค่า HI มีแนวโน้ม ${trendWord('hi')}
+ค่า CI มีแนวโน้ม ${trendWord('ci')}
+ค่า BI มีแนวโน้ม ${trendWord('bi')}
+
+ประเด็นที่ต้องเสนอ EOC เพื่อพิจารณา
+1. เร่งรัดการสำรวจหมู่บ้านที่ยังไม่มีข้อมูลหรือข้อมูลเก่าเกินรอบ
+2. วางแผนพ่นหมอกควัน/ทำลายแหล่งเพาะพันธุ์ในหมู่บ้านกลุ่มเสี่ยงสูง
+3. ติดตามผลการดำเนินงานในหมู่บ้านที่สถานะ "ยังไม่ได้ดำเนินการ" และ "กำลังดำเนินการ"`;
+}
+
+function renderAll(){
+  paintHeader(); paintKPI(); paintRiskGrid(); fillFilterOptions(); paintTable();
+  paintTrend(); paintBar(); paintAlerts(); paintStatusTracking(); paintSummary();
+}
+fetchAndRender();
+setInterval(fetchAndRender, REFRESH_MS);
+</script>
+</body>
+</html>
