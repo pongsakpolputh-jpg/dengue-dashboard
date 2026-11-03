@@ -101,7 +101,8 @@ footer{text-align:center; padding:24px 16px calc(20px + var(--safe-b)); color:va
 small.note{color:var(--sub); display:block; margin-top:6px;}
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<style>#map{height:440px;border-radius:12px;margin-bottom:12px;z-index:1}</style>
+<style>#map{height:440px;border-radius:12px;margin-bottom:12px;z-index:1}.monthsel{padding:6px 10px;border-radius:8px;border:1px solid #ffffff55;background:#fff;color:#0b5750;font-family:inherit;font-size:13px;font-weight:600}
+</style>
 </head>
 <body>
 
@@ -122,6 +123,7 @@ small.note{color:var(--sub); display:block; margin-top:6px;}
         <div><b id="mVillage">-</b>หมู่บ้านที่สำรวจ</div>
         <div><b id="mCount">-</b>จำนวนรายการที่อัปเดตล่าสุด</div>
       </div>
+      <label style="font-size:12px">เดือนที่สำรวจ<br><select id="monthSel" class="monthsel"><option value="">ทุกเดือน (ผลสำรวจล่าสุด)</option></select></label>
       <button class="refreshbtn" onclick="fetchAndRender()">⟳ Refresh Data</button>
     </div>
   </div>
@@ -139,6 +141,7 @@ small.note{color:var(--sub); display:block; margin-top:6px;}
   <!-- OVERVIEW -->
   <section class="tabpanel active" id="tab-overview">
     <h2 class="h">📊 ตัวชี้วัดหลัก (KPI)</h2>
+    <small class="note" id="monthNote" style="margin:-4px 0 10px"></small>
     <div class="grid-kpi" id="kpiGrid"></div>
 
     <h2 class="h">🗺️ แผนที่ความเสี่ยงรายหมู่บ้าน (Risk Heatmap)</h2>
@@ -265,35 +268,55 @@ function riskClass(text){
   return 'gray';
 }
 
-function buildVillages(rows){
-  const map = new Map();
+const TH_MONTHS=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+let selectedMonth='';
+function monthKey(s){ const d=parseDate(s); return d? d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0') : null; }
+function monthLabel(k){ if(!k) return 'ทุกเดือน (ผลสำรวจล่าสุด)'; const [y,m]=k.split('-'); return TH_MONTHS[+m-1]+' '+(+y+543); }
+function fillMonthOptions(){
+  const sel=document.getElementById('monthSel');
+  const keys=[...new Set(rawRows.map(r=>monthKey(r['วันที่สำรวจ'])).filter(Boolean))].sort().reverse();
+  if(selectedMonth && !keys.includes(selectedMonth)) selectedMonth='';
+  sel.innerHTML='<option value="">'+monthLabel('')+'</option>'+keys.map(k=>`<option value="${k}">${monthLabel(k)}</option>`).join('');
+  sel.value=selectedMonth;
+}
+function rebuild(){
+  villages=buildVillages(rawRows,selectedMonth);
+  tambons=[...new Set(villages.map(v=>v.tambon))].sort();
+}
+document.getElementById('monthSel').onchange=e=>{ selectedMonth=e.target.value; rebuild(); renderAll(); };
+
+function buildVillages(rows,month){
+  const map=new Map();
+  const byDate=(a,b)=>(parseDate(a['วันที่สำรวจ'])||0)-(parseDate(b['วันที่สำรวจ'])||0);
   rows.forEach(row=>{
     const tb=(row['ตำบล']||'').trim(), moo=(row['หมู่ที่']||'').trim();
     const name=(row['ชื่อหมู่บ้าน']||'').trim() || (tb+' หมู่ '+moo);
     if(!tb) return;
-    const key = tb+'|'+moo+'|'+name;
-    if(!map.has(key)) map.set(key, {tambon:tb, moo, name, records:[]});
-    map.get(key).records.push(row);
+    const key=tb+'|'+moo+'|'+name;
+    if(!map.has(key)) map.set(key,{tambon:tb,moo,name,all:[],records:[],lat:NaN,lng:NaN});
+    const v=map.get(key);
+    const la=parseFloat(row['Latitude']||row['ละติจูด']), ln=parseFloat(row['Longitude']||row['ลองจิจูด']);
+    if(!isNaN(la)&&!isNaN(ln)&&isNaN(v.lat)){ v.lat=la; v.lng=ln; }
+    if(row['ไม่มีข้อมูลสำรวจ']) return;               // แถวว่างใช้สร้างหมู่บ้านเท่านั้น
+    v.all.push(row);
+    if(!month || monthKey(row['วันที่สำรวจ'])===month) v.records.push(row);
   });
   let id=0; const list=[];
   map.forEach(v=>{
-    v.records.sort((a,b)=>(parseDate(a['วันที่สำรวจ'])||0)-(parseDate(b['วันที่สำรวจ'])||0));
-    const hist = v.records.map(r=>({
-      hi:parseFloat(r['HI']), ci:parseFloat(r['CI']), bi:parseFloat(r['BI']), date:r['วันที่สำรวจ']
-    })).filter(h=>!isNaN(h.hi));
-    const last = v.records[v.records.length-1] || {};
-    const hi=parseFloat(last['HI']), hasData = last && !isNaN(hi);
+    v.all.sort(byDate); v.records.sort(byDate);
+    const hist=v.all.map(r=>({hi:parseFloat(r['HI']),ci:parseFloat(r['CI']),bi:parseFloat(r['BI']),date:r['วันที่สำรวจ']})).filter(x=>!isNaN(x.hi));
+    const last=v.records[v.records.length-1]||{};
+    const hi=parseFloat(last['HI']), hasData=!isNaN(hi);
     id++;
     list.push({
-      id, tambon:v.tambon, moo:v.moo, name:v.name,
-      houses:+last['จำนวนหลังคาเรือนที่สำรวจ']||0, foundH:+last['จำนวนหลังคาเรือนที่พบลูกน้ำ']||0,
-      containers:+last['จำนวนภาชนะที่สำรวจ']||0, foundC:+last['จำนวนภาชนะที่พบลูกน้ำ']||0,
-      hi, ci:parseFloat(last['CI']), bi:parseFloat(last['BI']),
-      lat:parseFloat(last['Latitude']||last['ละติจูด']), lng:parseFloat(last['Longitude']||last['ลองจิจูด']),
-      risk: hasData? riskClass(last['ระดับความเสี่ยง']) : 'gray', hasData,
-      surveyDate: last['วันที่สำรวจ']||null,
-      status: last['สถานะการดำเนินงาน']||statuses[0],
-      officer: last['ผู้สำรวจ']||'-',
+      id,tambon:v.tambon,moo:v.moo,name:v.name,
+      houses:+last['จำนวนหลังคาเรือนที่สำรวจ']||0,foundH:+last['จำนวนหลังคาเรือนที่พบลูกน้ำ']||0,
+      containers:+last['จำนวนภาชนะที่สำรวจ']||0,foundC:+last['จำนวนภาชนะที่พบลูกน้ำ']||0,
+      hi,ci:parseFloat(last['CI']),bi:parseFloat(last['BI']),lat:v.lat,lng:v.lng,
+      risk:hasData?riskClass(last['ระดับความเสี่ยง']):'gray',hasData,
+      surveyDate:last['วันที่สำรวจ']||null,
+      status:last['สถานะการดำเนินงาน']||statuses[0],
+      officer:last['ผู้สำรวจ']||'-',
       hist
     });
   });
@@ -306,8 +329,8 @@ async function fetchAndRender(){
     const res = await fetch(SHEET_API_URL, {cache:'no-store'});
     if(!res.ok) throw new Error('HTTP '+res.status);
     rawRows = await res.json();
-    villages = buildVillages(rawRows);
-    tambons = [...new Set(villages.map(v=>v.tambon))].sort();
+    fillMonthOptions();
+    rebuild();
     document.getElementById('connBadge').textContent='🟢 เชื่อมต่อ Google Sheets สำเร็จ';
     renderAll();
   }catch(err){
@@ -335,6 +358,7 @@ function paintHeader(){
   document.getElementById('mLast').textContent = now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
   document.getElementById('mTambon').textContent = new Set(villages.filter(v=>v.hasData).map(v=>v.tambon)).size;
   document.getElementById('mVillage').textContent = villages.filter(v=>v.hasData).length;
+  document.getElementById('monthNote').textContent = selectedMonth ? 'กำลังแสดงผลสำรวจครั้งล่าสุดของแต่ละหมู่บ้านภายในเดือน '+monthLabel(selectedMonth)+' · หมู่บ้านที่ไม่ได้สำรวจในเดือนนี้จะแสดงเป็น "ไม่มีข้อมูล"' : 'กำลังแสดงผลสำรวจครั้งล่าสุดของแต่ละหมู่บ้าน (ทุกเดือน)';
   document.getElementById('mCount').textContent = rawRows.filter(r=>!r['ไม่มีข้อมูลสำรวจ']).length;
 }
 
@@ -409,10 +433,11 @@ function paintRiskGrid(){
 }
 
 function fillFilterOptions(){
-  const ft=document.getElementById('fTambon'); ft.innerHTML='<option value="">ทุกตำบล</option>';
+  const ft=document.getElementById('fTambon'), curT=ft.value; ft.innerHTML='<option value="">ทุกตำบล</option>';
   tambons.forEach(t=>ft.insertAdjacentHTML('beforeend',`<option value="${t}">${t}</option>`));
-  const fs=document.getElementById('fStatus'); fs.innerHTML='<option value="">ทุกสถานะดำเนินงาน</option>';
+  const fs=document.getElementById('fStatus'), curS=fs.value; fs.innerHTML='<option value="">ทุกสถานะดำเนินงาน</option>';
   statuses.forEach(s=>fs.insertAdjacentHTML('beforeend',`<option value="${s}">${s}</option>`));
+  ft.value=curT; fs.value=curS;
   ['fTambon','fRisk','fStatus','fSearch'].forEach(id=>document.getElementById(id).oninput=paintTable);
 }
 function paintTable(){
@@ -554,7 +579,7 @@ function paintSummary(){
     return now>prev+1?'เพิ่มขึ้น':now<prev-1?'ลดลง':'ทรงตัว';
   }
   document.getElementById('summaryTxt').textContent =
-`ปัจจุบันอำเภอท่าแพมีการสำรวจแล้ว ${surveyed.length} หมู่บ้าน จากทั้งหมด ${villages.length} หมู่บ้านที่มีข้อมูลในระบบ
+`${selectedMonth?'ข้อมูลเดือน '+monthLabel(selectedMonth)+'\n':''}ปัจจุบันอำเภอท่าแพมีการสำรวจแล้ว ${surveyed.length} หมู่บ้าน จากทั้งหมด ${villages.length} หมู่บ้านที่มีข้อมูลในระบบ
 พบหมู่บ้านที่ต้องเฝ้าระวัง ${watch.length} หมู่บ้าน และหมู่บ้านที่ต้องเร่งดำเนินการ ${urgent.length} หมู่บ้าน
 
 ค่าเฉลี่ยทั้งอำเภอ: HI ${hiAvg} / CI ${ciAvg} / BI ${biAvg}
