@@ -100,6 +100,8 @@ footer{text-align:center; padding:24px 16px calc(20px + var(--safe-b)); color:va
 .refreshbtn{background:#ffffff22; border:1px solid #ffffff55; color:#fff; padding:6px 12px; border-radius:8px; cursor:pointer; font-family:inherit; font-size:12.5px;}
 small.note{color:var(--sub); display:block; margin-top:6px;}
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>#map{height:440px;border-radius:12px;margin-bottom:12px;z-index:1}</style>
 </head>
 <body>
 
@@ -141,6 +143,7 @@ small.note{color:var(--sub); display:block; margin-top:6px;}
 
     <h2 class="h">🗺️ แผนที่ความเสี่ยงรายหมู่บ้าน (Risk Heatmap)</h2>
     <div class="card">
+      <div id="map"></div>
       <div class="risk-grid" id="riskGrid"></div>
       <div class="legend">
         <span><i class="g-green" style="background:var(--green)"></i>ควบคุมได้</span>
@@ -148,7 +151,18 @@ small.note{color:var(--sub); display:block; margin-top:6px;}
         <span><i style="background:var(--orange)"></i>ต้องเร่งดำเนินการ</span>
         <span><i style="background:var(--red)"></i>ค่าดัชนีสูง/เสี่ยง</span>
       </div>
-      <small class="note">* คลิกหมู่บ้านเพื่อดูรายละเอียด — ไม่มีพิกัด Lat/Long ในข้อมูลตัวอย่าง จึงแสดงเป็น Grid ตามตำบล แทนแผนที่ภูมิศาสตร์จริง</small>
+      <small class="note" id="mapNote">* คลิกหมู่บ้านเพื่อดูรายละเอียด</small>
+    </div>
+
+    <h2 class="h">🏘️ สรุปรายตำบล (ใช้ผลสำรวจครั้งล่าสุดของแต่ละหมู่บ้าน)</h2>
+    <div class="card">
+      <div class="tblwrap">
+        <table style="min-width:900px">
+          <thead><tr><th>ตำบล</th><th>หมู่บ้านทั้งหมด</th><th>สำรวจแล้ว</th><th>ยังไม่สำรวจ</th><th>HI เฉลี่ย</th><th>CI เฉลี่ย</th><th>BI เฉลี่ย</th><th>🔴 สูง</th><th>🟠 เร่งด่วน</th><th>🟡 เฝ้าระวัง</th><th>🟢 ควบคุมได้</th><th>สำรวจล่าสุด</th></tr></thead>
+          <tbody id="tambonBody"></tbody>
+        </table>
+      </div>
+      <small class="note">* แต่ละหมู่บ้านนับจากการสำรวจครั้งล่าสุดเพียงครั้งเดียว · คลิกชื่อตำบลเพื่อดูรายหมู่บ้านในตารางที่กรองตำบลนั้น</small>
     </div>
   </section>
 
@@ -207,24 +221,15 @@ small.note{color:var(--sub); display:block; margin-top:6px;}
   <section class="tabpanel" id="tab-summary">
     <h2 class="h">🧾 Executive Summary สำหรับที่ประชุม EOC</h2>
     <div class="card"><div class="summary-txt" id="summaryTxt"></div></div>
-    <div class="card">
-      <b>ขั้นตอนเชื่อมต่อ Google Sheets จริง (สรุปย่อ)</b>
-      <ol style="font-size:13.5px; line-height:1.8;">
-        <li>สร้าง Google Sheet ตามโครงสร้างคอลัมน์ที่กำหนด แล้วเปิด Google Apps Script</li>
-        <li>เขียน Web App (doGet) ให้ส่งออกข้อมูลเป็น JSON พร้อม Deploy เป็น "Web App" (Anyone with link)</li>
-        <li>นำ URL ของ Web App ไปตั้งเป็นแหล่งข้อมูลใน Dashboard เวอร์ชันที่ Host เอง (เช่น Looker Studio ต่อ Sheets โดยตรง หรือเว็บแอปที่ Host บนเซิร์ฟเวอร์ของหน่วยงาน)</li>
-        <li>ตั้งเวลา Trigger/Auto Refresh ทุก 1–5 นาทีฝั่ง Dashboard ให้ดึงข้อมูลใหม่</li>
-        <li>หมายเหตุ: หน้านี้เผยแพร่ผ่าน Claude Artifact ซึ่งมีข้อจำกัดด้านความปลอดภัยไม่อนุญาตให้ดึง API ภายนอกโดยตรง จึงต้อง Host เวอร์ชัน Production แยกต่างหาก (Looker Studio / Power BI / เว็บแอปของหน่วยงาน) จึงจะ Auto Refresh จาก Google Sheets ได้จริง</li>
-      </ol>
-    </div>
   </section>
 
 </div>
 
 <div class="modal-bg" id="modalBg"><div class="modal" id="modalBody"></div></div>
 
-<footer>ระบบเฝ้าระวังค่าดัชนีลูกน้ำยุงลาย อำเภอท่าแพ จังหวัดสตูล — ข้อมูลในหน้านี้เป็นข้อมูลสาธิตเพื่อสาธิตการออกแบบ Dashboard เท่านั้น</footer>
+<footer>ระบบเฝ้าระวังค่าดัชนีลูกน้ำยุงลาย อำเภอท่าแพ จังหวัดสตูล — เชื่อมต่อข้อมูลจาก Google Sheets โดยอัตโนมัติ</footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwx50sZn7AyQCKNdvn9aE_XIHkCprFpbhWNYzDfGsYjFRoUadPj6_ntBR2DnXpwyxgk/exec";
 const REFRESH_MS = 3*60*1000; // 3 minutes
@@ -284,6 +289,7 @@ function buildVillages(rows){
       houses:+last['จำนวนหลังคาเรือนที่สำรวจ']||0, foundH:+last['จำนวนหลังคาเรือนที่พบลูกน้ำ']||0,
       containers:+last['จำนวนภาชนะที่สำรวจ']||0, foundC:+last['จำนวนภาชนะที่พบลูกน้ำ']||0,
       hi, ci:parseFloat(last['CI']), bi:parseFloat(last['BI']),
+      lat:parseFloat(last['Latitude']||last['ละติจูด']), lng:parseFloat(last['Longitude']||last['ลองจิจูด']),
       risk: hasData? riskClass(last['ระดับความเสี่ยง']) : 'gray', hasData,
       surveyDate: last['วันที่สำรวจ']||null,
       status: last['สถานะการดำเนินงาน']||statuses[0],
@@ -319,6 +325,7 @@ document.querySelectorAll('nav.tabs button').forEach(b=>{
     document.querySelectorAll('.tabpanel').forEach(x=>x.classList.remove('active'));
     b.classList.add('active');
     document.getElementById('tab-'+b.dataset.tab).classList.add('active');
+    if(window.vmap) setTimeout(()=>vmap.invalidateSize(),50);
   };
 });
 
@@ -326,9 +333,9 @@ function paintHeader(){
   const now=new Date();
   document.getElementById('mDate').textContent = now.toLocaleDateString('th-TH',{day:'2-digit',month:'short',year:'2-digit'})+' '+now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
   document.getElementById('mLast').textContent = now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
-  document.getElementById('mTambon').textContent = tambons.length;
-  document.getElementById('mVillage').textContent = villages.length;
-  document.getElementById('mCount').textContent = rawRows.length;
+  document.getElementById('mTambon').textContent = new Set(villages.filter(v=>v.hasData).map(v=>v.tambon)).size;
+  document.getElementById('mVillage').textContent = villages.filter(v=>v.hasData).length;
+  document.getElementById('mCount').textContent = rawRows.filter(r=>!r['ไม่มีข้อมูลสำรวจ']).length;
 }
 
 function paintKPI(){
@@ -338,12 +345,61 @@ function paintKPI(){
   const watch = surveyed.filter(v=>v.risk==='yellow').length;
   const high = surveyed.filter(v=>v.risk==='red'||v.risk==='orange').length;
   const noData = villages.length-surveyed.length;
-  const kpis=[[villages.length,'จำนวนหมู่บ้านที่สำรวจ'],[withLarvae.length,'หมู่บ้านที่พบลูกน้ำ'],
+  const kpis=[[surveyed.length,'จำนวนหมู่บ้านที่สำรวจ'],[withLarvae.length,'หมู่บ้านที่พบลูกน้ำ'],
     [avgk('hi'),'ค่า HI เฉลี่ย'],[avgk('ci'),'ค่า CI เฉลี่ย'],[avgk('bi'),'ค่า BI เฉลี่ย'],
     [watch,'หมู่บ้านระดับเฝ้าระวัง'],[high,'หมู่บ้านค่าดัชนีสูง/เร่งด่วน'],[noData,'หมู่บ้านยังไม่ได้สำรวจตามรอบ']];
   document.getElementById('kpiGrid').innerHTML = kpis.map((k,i)=>`<div class="kpi ${i>=5?'alertnum':''}"><div class="num">${k[0]}</div><div class="lbl">${k[1]}</div></div>`).join('');
 }
 
+const RISK_COLOR={red:'#dc2626',orange:'#ea580c',yellow:'#ca8a04',green:'#16a34a',gray:'#9aa6a4'};
+function paintMap(){
+  const el=document.getElementById('map'), note=document.getElementById('mapNote');
+  const pts=villages.filter(v=>!isNaN(v.lat)&&!isNaN(v.lng));
+  if(!pts.length){
+    el.style.display='none';
+    note.textContent='* ยังไม่มีพิกัด Latitude/Longitude ในชีท จึงแสดงเป็น Grid — เพิ่มพิกัดแล้วแผนที่จะแสดงอัตโนมัติ';
+    return;
+  }
+  el.style.display='block';
+  if(!window.vmap){
+    window.vmap=L.map('map');
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'&copy; OpenStreetMap contributors'}).addTo(vmap);
+    window.vlayer=L.layerGroup().addTo(vmap);
+  }
+  vlayer.clearLayers();
+  pts.forEach(v=>{
+    const c=RISK_COLOR[v.risk];
+    L.circleMarker([v.lat,v.lng],{radius:11,color:'#fff',weight:2,fillColor:c,fillOpacity:.9})
+      .bindPopup(`<b>${v.name}</b><br>ตำบล${v.tambon}<br>HI ${v.hasData?v.hi:'-'} / CI ${v.hasData?v.ci:'-'} / BI ${v.hasData?v.bi:'-'}<br>${riskLabel[v.risk]}<br><a href="#" onclick="openVillage(${v.id});return false;">ดูรายละเอียด</a>`)
+      .addTo(vlayer);
+  });
+  vmap.fitBounds(pts.map(v=>[v.lat,v.lng]),{padding:[30,30],maxZoom:14});
+  const miss=villages.length-pts.length;
+  note.textContent='* คลิกจุดบนแผนที่เพื่อดูรายละเอียด'+(miss?` — มี ${miss} หมู่บ้านที่ยังไม่มีพิกัด (ดูใน Grid ด้านล่าง)`:'');
+}
+function goTambon(t){
+  document.querySelector('nav.tabs button[data-tab="table"]').click();
+  const f=document.getElementById('fTambon'); f.value=t; paintTable();
+}
+function paintTambonSummary(){
+  const f1=x=>isNaN(x)||x===null?'-':x.toFixed(1);
+  const cnt=n=>n?n:'<span style="color:var(--sub)">0</span>';
+  function row(label,vs,isTotal){
+    const s=vs.filter(v=>v.hasData);
+    const m=k=>s.length? s.reduce((a,v)=>a+(v[k]||0),0)/s.length : NaN;
+    const by=r=>s.filter(v=>v.risk===r).length;
+    let last=null;
+    s.forEach(v=>{const d=parseDate(v.surveyDate); if(d&&(!last||d>last.d)) last={d,txt:v.surveyDate};});
+    const name=isTotal? `<b>${label}</b>` : `<a href="#" onclick="goTambon('${label}');return false;" style="color:var(--teal);font-weight:600">${label}</a>`;
+    return `<tr style="${isTotal?'background:var(--teal-l);font-weight:700':''}"><td>${name}</td><td>${vs.length}</td><td>${s.length}</td>
+      <td>${vs.length-s.length? '<b style="color:var(--red)">'+(vs.length-s.length)+'</b>':'0'}</td>
+      <td>${f1(m('hi'))}</td><td>${f1(m('ci'))}</td><td>${f1(m('bi'))}</td>
+      <td>${cnt(by('red'))}</td><td>${cnt(by('orange'))}</td><td>${cnt(by('yellow'))}</td><td>${cnt(by('green'))}</td>
+      <td>${last?last.txt:'ไม่มีข้อมูล'}</td></tr>`;
+  }
+  document.getElementById('tambonBody').innerHTML =
+    tambons.map(t=>row(t,villages.filter(v=>v.tambon===t),false)).join('') + row('รวมทั้งอำเภอ',villages,true);
+}
 function paintRiskGrid(){
   document.getElementById('riskGrid').innerHTML = villages.map(v=>{
     const cls = v.hasData? 'g-'+v.risk : '';
@@ -518,7 +574,7 @@ function paintSummary(){
 }
 
 function renderAll(){
-  paintHeader(); paintKPI(); paintRiskGrid(); fillFilterOptions(); paintTable();
+  paintHeader(); paintKPI(); paintMap(); paintTambonSummary(); paintRiskGrid(); fillFilterOptions(); paintTable();
   paintTrend(); paintBar(); paintAlerts(); paintStatusTracking(); paintSummary();
 }
 fetchAndRender();
